@@ -1,0 +1,16 @@
+alertmanager:
+  service:
+    type: ClusterIP
+
+  config:
+    route:
+      group_by: ['alertname']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 1h
+      receiver: 'webhook'
+    receivers:
+      - name: 'webhook'
+        webhook_configs:
+          - url: 'http://alertmanager-webhook.default.svc.cluster.local'
+            send_resolved: true

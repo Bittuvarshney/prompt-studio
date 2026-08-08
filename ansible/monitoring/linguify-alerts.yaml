@@ -1,0 +1,20 @@
+groups:
+  - name: promptcraft-studio
+    rules:
+      - alert: PromptCraftAppDown
+        expr: up{job="promptcraft-studio"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: PromptCraft Studio app is down
+          description: The application pod is unavailable for more than 2 minutes.
+
+      - alert: PromptCraftHighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="promptcraft-studio"}[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High latency detected
+          description: The 95th percentile latency is over 1 second.

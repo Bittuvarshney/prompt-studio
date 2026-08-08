@@ -1,0 +1,91 @@
+---
+- name: Deploy PromptCraft Studio application
+  hosts: app
+  become: true
+  vars:
+    app_dir: /opt/promptcraft-studio
+    repo_url: https://github.com/your-org/promptcraft-studio.git
+    app_env: production
+    app_port: 3000
+
+  tasks:
+    - name: Install system packages
+      apt:
+        name:
+          - curl
+          - git
+          - ca-certificates
+          - build-essential
+        state: present
+        update_cache: true
+
+    - name: Install Node.js 20 repository
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      args:
+        creates: /etc/apt/sources.list.d/nodesource.list
+
+    - name: Install Node.js
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Ensure application directory exists
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Clone application repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: main
+        force: true
+      become: false
+
+    - name: Install Node dependencies
+      npm:
+        path: "{{ app_dir }}"
+        state: present
+        production: false
+
+    - name: Create environment file
+      copy:
+        dest: "{{ app_dir }}/.env"
+        content: |
+          NODE_ENV={{ app_env }}
+          PORT={{ app_port }}
+          GROQ_API_KEY={{ lookup('env', 'GROQ_API_KEY') | default('changeme', true) }}
+          APP_URL=http://localhost:{{ app_port }}
+        mode: '0600'
+
+    - name: Build application
+      command: npm run build
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Install PM2 globally
+      npm:
+        name: pm2
+        global: true
+
+    - name: Start app with PM2
+      command: pm2 start dist/server.cjs --name promptcraft-studio --env production
+      args:
+        chdir: "{{ app_dir }}"
+      register: pm2_start
+      failed_when: false
+
+    - name: Save PM2 process list
+      command: pm2 save
+      args:
+        chdir: "{{ app_dir }}"
+      when: pm2_start is succeeded
+
+    - name: Ensure app is listening on configured port
+      wait_for:
+        port: "{{ app_port }}"
+        timeout: 30

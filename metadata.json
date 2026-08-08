@@ -1,0 +1,6 @@
+{
+  "name": "PromptCraft Studio",
+  "description": "AI-powered voice & text prompt generator, real-time animated web layout engine, membership sandbox, and help desk.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
