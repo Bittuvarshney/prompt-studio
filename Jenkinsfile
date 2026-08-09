@@ -113,7 +113,7 @@ pipeline {
                         --name ${CONTAINER_NAME} \
                         --restart unless-stopped \
                         -p ${APP_PORT}:3000 \
-                        --env-file /home/ubuntu/promptcraft.env \
+                        --env-file /etc/promptcraft.env \
                         ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
                 '''
             }
