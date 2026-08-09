@@ -9,7 +9,7 @@ pipeline {
         IMAGE_TAG = "${BUILD_NUMBER}"
 
         // Change this to your Docker Hub username
-        DOCKERHUB_USERNAME = 'YOUR_DOCKERHUB_USERNAME'
+        DOCKERHUB_USERNAME = 'bittoovarshney'
 
         // Docker Hub credentials ID from Jenkins
         DOCKERHUB_CREDENTIALS = 'dockerhub-credentials'
