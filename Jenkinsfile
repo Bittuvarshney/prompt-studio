@@ -1,4 +1,4 @@
-
+```text
 pipeline {
     agent any
 
@@ -8,10 +8,7 @@ pipeline {
         IMAGE_NAME = 'promptcraft-studio'
         IMAGE_TAG = "${BUILD_NUMBER}"
 
-        // Change this to your Docker Hub username
         DOCKERHUB_USERNAME = 'bittoovarshney'
-
-        // Docker Hub credentials ID from Jenkins
         DOCKERHUB_CREDENTIALS = 'dockerhub-credentials'
 
         CONTAINER_NAME = 'promptcraft-studio'
@@ -22,9 +19,7 @@ pipeline {
 
         stage('Checkout source') {
             steps {
-                echo 'Checking out source code...'
-                // Declarative Pipeline already performs SCM checkout.
-                // Therefore no explicit checkout scm is required here.
+                echo 'Source code checked out by Jenkins SCM.'
                 sh 'git log -1 --oneline'
             }
         }
@@ -56,9 +51,9 @@ pipeline {
 
                 sh '''
                     docker build \
-                      -t ${IMAGE_NAME}:${IMAGE_TAG} \
-                      -t ${IMAGE_NAME}:latest \
-                      .
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                        -t ${IMAGE_NAME}:latest \
+                        .
                 '''
             }
         }
@@ -76,20 +71,16 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASSWORD" | docker login \
-                          -u "$DOCKER_USERNAME" \
-                          --password-stdin
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
                     '''
                 }
             }
         }
 
         stage('Push Docker Image') {
-            when {
-                branch 'main'
-            }
-
             steps {
-                echo 'Pushing Docker image to Docker Hub...'
+                echo "Pushing ${IMAGE_NAME}:${IMAGE_TAG} to Docker Hub..."
 
                 sh '''
                     docker tag ${IMAGE_NAME}:${IMAGE_TAG} \
@@ -108,12 +99,8 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-            when {
-                branch 'main'
-            }
-
             steps {
-                echo 'Deploying PromptCraft Studio to EC2...'
+                echo 'Deploying latest image to EC2...'
 
                 sh '''
                     docker pull \
@@ -133,16 +120,30 @@ pipeline {
             }
         }
 
-        stage('Health Check') {
-            when {
-                branch 'main'
-            }
-
+        stage('Verify Container') {
             steps {
-                echo 'Checking application health...'
+                echo 'Verifying running container...'
 
                 sh '''
-                    sleep 10
+                    sleep 5
+
+                    docker ps \
+                        --filter "name=${CONTAINER_NAME}" \
+                        --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
+
+                    docker inspect \
+                        --format='{{.State.Status}}' \
+                        ${CONTAINER_NAME}
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                echo 'Checking application health endpoint...'
+
+                sh '''
+                    sleep 5
 
                     curl --fail \
                         --retry 5 \
@@ -161,40 +162,36 @@ pipeline {
                 fingerprint: true,
                 allowEmptyArchive: true
             )
-
-            echo 'Cleaning Docker resources...'
-
-            sh '''
-                docker image prune -f || true
-            '''
         }
 
         success {
             echo '''
-            ==============================================
-            PromptCraft Studio CI/CD SUCCESS
-            ==============================================
-            GitHub Checkout       : SUCCESS
-            Dependencies          : SUCCESS
-            Lint                  : SUCCESS
-            Application Build     : SUCCESS
-            Docker Build          : SUCCESS
-            Docker Hub Push       : SUCCESS
-            EC2 Deployment        : SUCCESS
-            Health Check          : SUCCESS
-            ==============================================
-            '''
+==============================================
+ PromptCraft Studio CI/CD SUCCESS
+==============================================
+ GitHub Checkout       : SUCCESS
+ Dependencies          : SUCCESS
+ Lint                  : SUCCESS
+ Application Build     : SUCCESS
+ Docker Build          : SUCCESS
+ Docker Hub Login      : SUCCESS
+ Docker Hub Push       : SUCCESS
+ EC2 Deployment        : SUCCESS
+ Container Verification: SUCCESS
+ Health Check          : SUCCESS
+==============================================
+'''
         }
 
         failure {
             echo '''
-            ==============================================
-            PromptCraft Studio CI/CD FAILED
-            ==============================================
-            Check the Jenkins console output.
-            ==============================================
-            '''
+==============================================
+ PromptCraft Studio CI/CD FAILED
+==============================================
+Check the failed stage in the Jenkins console.
+==============================================
+'''
         }
     }
 }
-
+```
