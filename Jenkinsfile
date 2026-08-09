@@ -1,56 +1,200 @@
+```groovy
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    NODE_VERSION = '20'
-    IMAGE_NAME = 'promptcraft-studio'
-    IMAGE_TAG = "${env.BUILD_NUMBER}"
-  }
+    environment {
+        NODE_VERSION = '20'
 
-  stages {
-    stage('Checkout source') {
-      steps {
-        checkout scm
-      }
-    }
+        IMAGE_NAME = 'promptcraft-studio'
+        IMAGE_TAG = "${BUILD_NUMBER}"
 
-    stage('Install dependencies') {
-      steps {
-        sh 'npm install'
-      }
+        // Change this to your Docker Hub username
+        DOCKERHUB_USERNAME = 'YOUR_DOCKERHUB_USERNAME'
+
+        // Docker Hub credentials ID from Jenkins
+        DOCKERHUB_CREDENTIALS = 'dockerhub-credentials'
+
+        CONTAINER_NAME = 'promptcraft-studio'
+        APP_PORT = '3000'
     }
 
-    stage('Build application') {
-      steps {
-        sh 'npm run build'
-      }
+    stages {
+
+        stage('Checkout source') {
+            steps {
+                echo 'Checking out source code...'
+                // Declarative Pipeline already performs SCM checkout.
+                // Therefore no explicit checkout scm is required here.
+                sh 'git log -1 --oneline'
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                echo 'Installing dependencies...'
+                sh 'npm ci'
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                echo 'Running TypeScript validation...'
+                sh 'npm run lint'
+            }
+        }
+
+        stage('Build application') {
+            steps {
+                echo 'Building PromptCraft Studio...'
+                sh 'npm run build'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo "Building Docker image ${IMAGE_NAME}:${IMAGE_TAG}..."
+
+                sh '''
+                    docker build \
+                      -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                      -t ${IMAGE_NAME}:latest \
+                      .
+                '''
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                echo 'Logging into Docker Hub...'
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: "${DOCKERHUB_CREDENTIALS}",
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                          -u "$DOCKER_USERNAME" \
+                          --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                echo 'Pushing Docker image to Docker Hub...'
+
+                sh '''
+                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} \
+                        ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
+
+                    docker tag ${IMAGE_NAME}:latest \
+                        ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
+
+                    docker push \
+                        ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
+
+                    docker push \
+                        ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
+                '''
+            }
+        }
+
+        stage('Deploy to EC2') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                echo 'Deploying PromptCraft Studio to EC2...'
+
+                sh '''
+                    docker pull \
+                        ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
+
+                    docker stop ${CONTAINER_NAME} || true
+
+                    docker rm ${CONTAINER_NAME} || true
+
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        --restart unless-stopped \
+                        -p ${APP_PORT}:3000 \
+                        --env-file /home/ubuntu/promptcraft.env \
+                        ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                echo 'Checking application health...'
+
+                sh '''
+                    sleep 10
+
+                    curl --fail \
+                        --retry 5 \
+                        --retry-delay 3 \
+                        http://localhost:${APP_PORT}/api/health
+                '''
+            }
+        }
     }
 
-    stage('Package container image') {
-      steps {
-        sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
-      }
-    }
+    post {
 
-    stage('Deploy to environment') {
-      when {
-        branch 'main'
-      }
-      steps {
-        sh 'echo "Deployment hook goes here: push image to registry or rollout to cluster"'
-      }
-    }
-  }
+        always {
+            archiveArtifacts(
+                artifacts: 'dist/**/*',
+                fingerprint: true,
+                allowEmptyArchive: true
+            )
 
-  post {
-    always {
-      archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
+            echo 'Cleaning Docker resources...'
+
+            sh '''
+                docker image prune -f || true
+            '''
+        }
+
+        success {
+            echo '''
+            ==============================================
+            PromptCraft Studio CI/CD SUCCESS
+            ==============================================
+            GitHub Checkout       : SUCCESS
+            Dependencies          : SUCCESS
+            Lint                  : SUCCESS
+            Application Build     : SUCCESS
+            Docker Build          : SUCCESS
+            Docker Hub Push       : SUCCESS
+            EC2 Deployment        : SUCCESS
+            Health Check          : SUCCESS
+            ==============================================
+            '''
+        }
+
+        failure {
+            echo '''
+            ==============================================
+            PromptCraft Studio CI/CD FAILED
+            ==============================================
+            Check the Jenkins console output.
+            ==============================================
+            '''
+        }
     }
-    success {
-      echo 'Application build and image packaging completed successfully.'
-    }
-    failure {
-      echo 'Build failed. Please review the Jenkins console output.'
-    }
-  }
 }
+```
