@@ -1,49 +1,99 @@
-# PromptCraft Studio
+# 🚀 PromptCraft Studio
 
-PromptCraft Studio is a Vite + React + Express app for generating AI prompts, previewing live site layouts, and handling auth/help desk features.
+> A production-style AI web application deployed using a complete DevOps and Kubernetes workflow.
 
-## Tech stack
+PromptCraft Studio is a modern AI-powered web studio designed to help users create, manage, and work with prompts through an intuitive web interface.
 
-- React 19
-- Vite 6
-- Express
-- TypeScript
-- Groq AI integration
+The project demonstrates an end-to-end DevOps implementation including containerization, CI/CD, infrastructure provisioning, configuration management, Kubernetes orchestration, monitoring, dashboards, and alerting.
 
-## Prerequisites
+---
 
-- Node.js 20+
-- npm
-- Groq API key
+## ✨ Features
 
-## Local setup
+- 🤖 AI-powered Prompt Studio
+- 🎨 Modern responsive web interface
+- 🐳 Dockerized application
+- 🔄 Jenkins CI/CD pipeline
+- ☸️ Kubernetes deployment
+- ⚖️ Kubernetes service load balancing
+- 🌐 Traefik Ingress
+- ☁️ AWS EC2 infrastructure
+- 🏗️ Terraform infrastructure provisioning
+- ⚙️ Ansible configuration management
+- 📊 Prometheus monitoring
+- 📈 Grafana dashboards
+- 🚨 Alertmanager email notifications
+- ❤️ Kubernetes health monitoring
+- 📦 GitHub-based source control
 
-1. Install dependencies:
-   `npm install`
-2. Create a local environment file by copying [.env.example](.env.example) or creating `.env` with:
-   - `GROQ_API_KEY=your_key_here`
-   - `APP_URL=http://localhost:3000`
-   - `PORT=3000`
-3. Start the app in development mode:
-   `npm run dev`
-4. Production build:
-   `npm run build`
-5. Start the production server:
-   `npm run start`
+---
 
-## Application scripts
+# 🏗️ DevOps Architecture
 
-From [package.json](package.json):
+```text
+                        ┌────────────────────┐
+                        │      Developer     │
+                        │      Git Push       │
+                        └─────────┬──────────┘
+                                  │
+                                  ▼
+                        ┌────────────────────┐
+                        │      GitHub        │
+                        │   Source Control   │
+                        └─────────┬──────────┘
+                                  │
+                                  ▼
+                        ┌────────────────────┐
+                        │      Jenkins       │
+                        │     CI / CD        │
+                        └─────────┬──────────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    ▼                           ▼
+          ┌─────────────────┐         ┌─────────────────┐
+          │      Docker     │         │      Tests      │
+          │ Build & Push    │         │   Validation   │
+          └────────┬────────┘         └─────────────────┘
+                   │
+                   ▼
+          ┌─────────────────────┐
+          │       AWS EC2       │
+          │      Ubuntu         │
+          └──────────┬──────────┘
+                     │
+                     ▼
+             ┌───────────────┐
+             │   Kubernetes  │
+             │    Cluster    │
+             └───────┬───────┘
+                     │
+          ┌──────────┴───────────┐
+          ▼                      ▼
+ ┌─────────────────┐    ┌─────────────────┐
+ │ PromptCraft Pod │    │ PromptCraft Pod │
+ │      Replica    │    │      Replica    │
+ └────────┬────────┘    └────────┬────────┘
+          │                      │
+          └──────────┬───────────┘
+                     ▼
+             ┌───────────────┐
+             │    Service    │
+             └───────┬───────┘
+                     │
+                     ▼
+             ┌───────────────┐
+             │    Traefik    │
+             │    Ingress    │
+             └───────┬───────┘
+                     │
+                     ▼
+                  🌐 User
 
-- `npm run dev` → starts the Express + Vite dev server
-- `npm run build` → builds the frontend and server bundle
-- `npm run start` → runs the compiled production server
-- `npm run preview` → preview the Vite frontend
-- `npm run lint` → TypeScript check
-
-## Docker build
-
-```bash
-docker build -t promptcraft-studio .
-docker run -p 3000:3000 --env-file .env promptcraft-studio
-```
+        ┌───────────────────────────────┐
+        │        Monitoring Stack       │
+        │                               │
+        │ Prometheus → Grafana           │
+        │       │                       │
+        │       ▼                       │
+        │  Alertmanager → Email         │
+        └───────────────────────────────┘
