@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: promptcraft-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: promptcraft.rules
+      rules:
+
+        - alert: PromptCraftPodDown
+          expr: kube_deployment_status_replicas_available{namespace="default",deployment="promptcraft-studio"} < 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PromptCraft application is down"
+            description: "No PromptCraft Studio replicas are currently available."
+
+        - alert: PromptCraftHighCPU
+          expr: sum(rate(container_cpu_usage_seconds_total{namespace="default",pod=~"promptcraft-studio-.*",container!="POD",container!=""}[5m])) > 0.4
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PromptCraft CPU usage is high"
+            description: "PromptCraft Studio CPU usage has exceeded the configured threshold."
+
+        - alert: PromptCraftPodsNotReady
+          expr: kube_deployment_status_replicas_ready{namespace="default",deployment="promptcraft-studio"} < kube_deployment_spec_replicas{namespace="default",deployment="promptcraft-studio"}
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PromptCraft pods are not ready"
+            description: "The number of ready PromptCraft Studio replicas is below the desired replica count."

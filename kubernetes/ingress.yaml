@@ -2,12 +2,10 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: promptcraft-studio
-  annotations:
-    kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: traefik
   rules:
-    - host: promptcraft.example.com
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix

@@ -1,5 +1,5 @@
 [app]
-app01 ansible_host=app.example.com ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+app01 ansible_host=3.24.214.148 ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/.ssh/prompt.pem
 
 [app:vars]
 app_dir=/opt/promptcraft-studio

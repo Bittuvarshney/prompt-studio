@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: promptcraft-test-alert
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: promptcraft-test
+      rules:
+        - alert: PromptCraftTestAlert
+          expr: vector(1)
+          for: 30s
+          labels:
+            severity: warning
+          annotations:
+            summary: "PromptCraft test alert"
+            description: "This is a temporary test alert for Alertmanager."

@@ -4,7 +4,7 @@
   become: true
   vars:
     app_dir: /opt/promptcraft-studio
-    repo_url: https://github.com/your-org/promptcraft-studio.git
+    repo_url: https://github.com/Bittuvarshney/prompt-studio.git
     app_env: production
     app_port: 3000
 
